@@ -67,6 +67,8 @@
         }
         var requestDate = iso(now);
         var purchaseDate = iso(new Date(now.getTime() - 86400000 * 400));
+        // 不用 null（部分实现把 null 当成“无到期信息”），直接给 2099 的明确到期时间
+        var expiryDate = "2099-12-31T23:59:59Z";
 
         // entitlement key 候选：独立开发者 90% 用其中之一
         // 真实 entitlement id 来自 /v1/product_entitlement_mapping：
@@ -85,7 +87,7 @@
         var entitlements = {};
         for (var i = 0; i < ENTITLEMENT_KEYS.length; i++) {
             entitlements[ENTITLEMENT_KEYS[i]] = {
-                expires_date: null,
+                expires_date: expiryDate,
                 grace_period_expires_date: null,
                 product_identifier: PRODUCT_IDS[0],
                 purchase_date: purchaseDate,
@@ -97,7 +99,7 @@
         for (var j = 0; j < PRODUCT_IDS.length; j++) {
             subscriptions[PRODUCT_IDS[j]] = {
                 billing_issues_detected_at: null,
-                expires_date: null,
+                expires_date: expiryDate,
                 grace_period_expires_date: null,
                 is_sandbox: false,
                 original_purchase_date: purchaseDate,
@@ -117,7 +119,7 @@
                 entitlements: entitlements,
                 first_seen: purchaseDate,
                 last_seen: requestDate,
-                management_url: null,
+                management_url: "https://apps.apple.com/account/subscriptions",
                 non_subscriptions: {},
                 original_app_user_id: uid,
                 original_application_version: "2.81",
