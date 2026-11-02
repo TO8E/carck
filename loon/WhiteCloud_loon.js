@@ -268,8 +268,9 @@
             return;
         }
 
-        var FAR_MS = 4102444799000;          // 2099-12-31 23:59:59 UTC (ms)
-        var FAR_ISO = "2099-12-31T23:59:59Z";
+        // 统一成「一年后」，避免 2099 这种一眼假的数值被 app 做范围校验
+        var FAR_MS = Date.now() + 86400000 * 365;
+        var FAR_ISO = new Date(FAR_MS).toISOString().replace(/\.\d{3}Z$/, "Z");
 
         var EXPIRE_KEYS = {
             membershipexpires: 1,
