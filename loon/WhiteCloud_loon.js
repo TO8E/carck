@@ -176,6 +176,9 @@
                 unsubscribe_detected_at: null
             };
         }
+        if (!body.subscriber.original_application_version) body.subscriber.original_application_version = "2.81";
+        if (!body.subscriber.original_purchase_date) body.subscriber.original_purchase_date = purchaseDate;
+        if (!body.subscriber.management_url) body.subscriber.management_url = "https://apps.apple.com/account/subscriptions";
         if (!body.request_date) body.request_date = requestDate;
         if (!body.request_date_ms) body.request_date_ms = now.getTime();
 

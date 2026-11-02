@@ -98,7 +98,7 @@
         var entitlements = {};
         for (var i = 0; i < ENTITLEMENT_KEYS.length; i++) {
             entitlements[ENTITLEMENT_KEYS[i]] = {
-                expires_date: expiryDate,
+                expires_date: PROBE_BAD,
                 grace_period_expires_date: null,
                 product_identifier: PRODUCT_IDS[0],
                 purchase_date: purchaseDate,
@@ -123,8 +123,15 @@
             };
         }
 
-        // 探针：故意删掉 request_date（Codable 必填），让 RC 解码失败
-        var body = {
+        // 优先在「原始响应」上改：形状与真实响应完全一致，排除解码问题。
+        var body = null;
+        try {
+            var real = JSON.parse(origBody);
+            if (real && real.subscriber) body = real;
+        } catch (e) {}
+
+        if (!body) body = {
+            request_date: requestDate,
             request_date_ms: now.getTime(),
             subscriber: {
                 entitlements: entitlements,
@@ -140,6 +147,42 @@
                 subscriber_attributes: {}
             }
         };
+
+        // 无论走真实响应还是合成响应，都把会员权益塞进去
+        if (!body.subscriber) body.subscriber = {};
+        if (!body.subscriber.entitlements) body.subscriber.entitlements = {};
+        if (!body.subscriber.subscriptions) body.subscriber.subscriptions = {};
+        // 探针：故意给一个非法日期字符串，若 app 在解析 RC 响应就会报“会员状态校验失败”
+        var PROBE_BAD = "not-a-date";
+        for (var ei = 0; ei < ENTITLEMENT_KEYS.length; ei++) {
+            body.subscriber.entitlements[ENTITLEMENT_KEYS[ei]] = {
+                expires_date: PROBE_BAD,
+                grace_period_expires_date: null,
+                product_identifier: PRODUCT_IDS[0],
+                purchase_date: purchaseDate,
+                ownership_type: "PURCHASED"
+            };
+        }
+        for (var si = 0; si < PRODUCT_IDS.length; si++) {
+            body.subscriber.subscriptions[PRODUCT_IDS[si]] = {
+                billing_issues_detected_at: null,
+                expires_date: expiryDate,
+                grace_period_expires_date: null,
+                is_sandbox: false,
+                original_purchase_date: purchaseDate,
+                ownership_type: "PURCHASED",
+                period_type: "normal",
+                purchase_date: purchaseDate,
+                refunded_at: null,
+                store: "app_store",
+                unsubscribe_detected_at: null
+            };
+        }
+        if (!body.subscriber.original_application_version) body.subscriber.original_application_version = "2.81";
+        if (!body.subscriber.original_purchase_date) body.subscriber.original_purchase_date = purchaseDate;
+        if (!body.subscriber.management_url) body.subscriber.management_url = "https://apps.apple.com/account/subscriptions";
+        if (!body.request_date) body.request_date = requestDate;
+        if (!body.request_date_ms) body.request_date_ms = now.getTime();
 
         // 关键：删掉 x-signature。
         // 原响应带 ECDSA 签名，body 被替换后签名必然对不上；
