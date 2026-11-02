@@ -8,7 +8,7 @@
 https://raw.githubusercontent.com/TO8E/carck/main/baiyun/WhiteCloud.rewrite.conf
 ```
 
-规则里的三个脚本同样走 raw URL，订阅后 QX 会自动拉取脚本，不需要手动放文件。
+规则里的脚本同样走 raw URL，订阅后 QX 会自动拉取脚本，不需要手动放文件。
 
 订阅完还差一步：QX → 设置 → MitM → 主机名，加上：
 
@@ -49,9 +49,7 @@ api.revenuecat.com, api-production.8-lives-cat.io, api.rc-backup.com, untech.cc,
 |---|---|
 | `baiyun/WhiteCloud.conf` | QX 的 `[mitm]` + `[rewrite_local]` 配置片段 |
 | `baiyun/WhiteCloud.rewrite.conf` | 给 QX「重写订阅」用的远程规则（脚本走 raw URL） |
-| `baiyun/WhiteCloud_rc_req.js` | 删除 `If-None-Match`，防止 RevenueCat 返回 304 |
-| `baiyun/WhiteCloud_rc.js` | 构造永久 entitlement 的 `/v1/subscribers/{id}` 响应 |
-| `baiyun/WhiteCloud_api.js` | 递归改写 `untech.cc/api/v2/*` 里的 `membershipExpires` / `isMember` 等字段 |
+| `baiyun/WhiteCloud.js` | 单文件脚本，按 QX 阶段 + URL 自动分发，覆盖下面三件事 |
 
 ---
 
@@ -66,7 +64,7 @@ api.revenuecat.com, api-production.8-lives-cat.io, api.rc-backup.com, untech.cc,
 
 ### 2. 放脚本
 
-把 `baiyun/` 下三个 `.js` 复制到 QX 的脚本目录：
+把 `baiyun/WhiteCloud.js` 复制到 QX 的脚本目录：
 
 ```
 文件 App → 我的 iPhone → Quantumult X → Scripts/
@@ -132,7 +130,7 @@ $notify("WhiteCloud RC", "", Object.keys(JSON.parse($response.body).subscriber.e
 |---|---|---|
 | QX 日志没有命中 | MITM 证书没信任 / hostname 没加 | 重装证书，确认 `hostname` 含 `api.revenuecat.com` |
 | 请求命中但 app 仍非会员 | entitlement key 不对 | 按上面抓包补 key |
-| 第一次生效，重开失效 | RevenueCat 走了 ETag 304 / 本地缓存 | 确认 `WhiteCloud_rc_req.js` 已挂上；清 app 数据 |
+| 第一次生效，重开失效 | RevenueCat 走了 ETag 304 / 本地缓存 | 确认 `script-request-header` 那条规则已挂上；清 app 数据 |
 | app 提示网络错误 | 脚本返回了非法 JSON | QX 日志看脚本报错，`node --check` 校验语法 |
 | 会员页显示但功能仍锁 | 功能走了自有 API 的另一个字段 | 抓对应接口响应，补字段名 |
 
@@ -140,18 +138,22 @@ $notify("WhiteCloud RC", "", Object.keys(JSON.parse($response.body).subscriber.e
 
 ## 六、脚本行为说明
 
-### `WhiteCloud_rc.js`
+`WhiteCloud.js` 一个文件挂三条 rewrite，靠**阶段**和 **URL** 自动分发：
 
-对 `GET /v1/subscribers/{app_user_id}` 返回：
+| 阶段 | URL | 行为 |
+|---|---|---|
+| `script-request-header` | `/v1/subscribers/` | 删掉 `If-None-Match`，防止 RevenueCat 返回 304 |
+| `script-response-body` | `/v1/subscribers/` | 返回伪造的永久 subscriber |
+| `script-response-body` | `/api/v2/` | 递归改写自有服务端会员字段 |
+
+RevenueCat 响应里：
 
 - `subscriber.entitlements`：13 个候选 key，全部 `expires_date: null`（永久）。
 - `subscriber.subscriptions`：8 个候选产品 ID，全部永久、`store: app_store`、`period_type: normal`。
 - 清掉 `X-RevenueCat-ETag`、`X-RevenueCat-Signature`、`Content-Length` 等头。
 - `original_app_user_id` 从 URL 里取，保持和请求一致。
 
-### `WhiteCloud_api.js`
-
-递归遍历 JSON，命中以下字段就改：
+自有 API 响应里递归遍历 JSON，命中以下字段就改：
 
 - `membershipExpires` / `vip_expires_at` / `premium_expires` 等 → `4102444799000`（数字）或 `2099-12-31T23:59:59Z`（字符串）。
 - `isMember` / `isVip` / `isPremium` / `isPro` / `hasMembership` 等布尔 → `true`。
