@@ -39,12 +39,14 @@
     // 只认 /v1/subscribers/{id} 本身，不能误伤 /offerings、/attributes 等子路径
     var path = url.split("?")[0].split("#")[0];
     var isSubscriber = /\/v1\/subscribers\/[^\/]+\/?$/.test(path);
+    // 恢复购买 / 校验收据也返回 CustomerInfo，一并伪造
+    var isReceipts = /\/v1\/receipts\/?$/.test(path);
 
     // ============================================================
     // 阶段一：请求头（http-request 阶段没有 $response）
     // ============================================================
     if (typeof $response === "undefined") {
-        if (!isSubscriber) {
+        if (!isSubscriber && !isReceipts) {
             $done({});
             return;
         }
@@ -62,7 +64,7 @@
     // ============================================================
     // 阶段二：RevenueCat subscriber 响应 → 伪造永久会员
     // ============================================================
-    if (isSubscriber) {
+    if (isSubscriber || isReceipts) {
         var uid = "$RCAnonymousID:whitecloud";
         var m = url.match(/\/v1\/subscribers\/([^\/?#]+)/);
         if (m && m[1]) {
