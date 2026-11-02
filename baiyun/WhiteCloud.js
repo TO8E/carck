@@ -86,15 +86,10 @@
         ];
 
         // 产品 ID 候选：只用于让 EntitlementInfo.productIdentifier 有值
+        // 真实 product id 来自 offerings：$rc_annual -> wc_pro_1y，$rc_monthly -> wc_pro_1m
         var PRODUCT_IDS = [
-            "com.wuxin.WhiteCloud.pro.yearly",
-            "com.wuxin.WhiteCloud.pro.monthly",
-            "com.wuxin.WhiteCloud.pro.lifetime",
-            "com.wuxin.WhiteCloud.yearly",
-            "com.wuxin.WhiteCloud.monthly",
-            "com.wuxin.WhiteCloud.lifetime",
-            "com.wuxin.whitecloud.pro.yearly",
-            "com.wuxin.whitecloud.yearly"
+            "wc_pro_1y",
+            "wc_pro_1m"
         ];
 
         var entitlements = {};
@@ -143,16 +138,24 @@
             }
         };
 
-        // 清掉会让 SDK 认为“响应被篡改/命中缓存”的头
+        // 关键：删掉 x-signature。
+        // 原响应带 ECDSA 签名，body 被替换后签名必然对不上；
+        // RevenueCat 在 enforced 模式下会抛 entitlementVerificationFailed 并丢弃 body。
+        // 去掉签名头后 SDK 判定为 notRequested，直接采用 body。
+        var DROP = {
+            "x-signature": 1,
+            "etag": 1,
+            "x-revenuecat-etag": 1,
+            "x-revenuecat-signature": 1,
+            "x-revenuecat-request-time": 1,
+            "content-length": 1,
+            "content-encoding": 1,
+            "content-type": 1
+        };
         var resHeaders = {};
         if ($response && $response.headers) {
             for (var hk in $response.headers) {
-                var lk = hk.toLowerCase();
-                if (lk === "etag" || lk === "x-revenuecat-etag" ||
-                    lk === "x-revenuecat-signature" || lk === "x-revenuecat-request-id" ||
-                    lk === "content-length" || lk === "content-encoding") {
-                    continue;
-                }
+                if (DROP[hk.toLowerCase()]) continue;
                 resHeaders[hk] = $response.headers[hk];
             }
         }
