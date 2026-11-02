@@ -15,7 +15,15 @@
     // ============================================================
     // 阶段一：请求头（QX 的 script-request-header 阶段没有 $response）
     // ============================================================
+    // 只认 /v1/subscribers/{id} 本身，不能误伤 /offerings、/attributes 等子路径
+    var path = url.split("?")[0].split("#")[0];
+    var isSubscriber = /\/v1\/subscribers\/[^\/]+\/?$/.test(path);
+
     if (typeof $response === "undefined") {
+        if (!isSubscriber) {
+            $done({});
+            return;
+        }
         var reqHeaders = {};
         if ($request && $request.headers) {
             for (var rk in $request.headers) {
@@ -30,7 +38,7 @@
     // ============================================================
     // 阶段二：RevenueCat subscriber 响应 → 伪造永久会员
     // ============================================================
-    if (/\/v1\/subscribers\//.test(url)) {
+    if (isSubscriber) {
         var uid = "$RCAnonymousID:whitecloud";
         var m = url.match(/\/v1\/subscribers\/([^\/?#]+)/);
         if (m && m[1]) {
@@ -143,9 +151,11 @@
     }
 
     // ============================================================
-    // 阶段三：自有服务端 /api/v2/ 响应 → 递归改会员字段
+    // 阶段三：自有服务端会员接口 → 递归改会员字段
+    // 只碰 user-settings / register-device，bootstrap 和天气大 JSON 不动，
+    // 避免遍历大响应拖慢启动、也避免误伤 bootstrap 配置。
     // ============================================================
-    if (/\/api\/v2\//.test(url)) {
+    if (/\/api\/v2\/(users\/user-settings|users\/register-device)/.test(url)) {
         var raw = $response.body;
         if (!raw) {
             $done({});

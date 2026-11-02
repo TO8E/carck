@@ -132,6 +132,7 @@ $notify("WhiteCloud RC", "", Object.keys(JSON.parse($response.body).subscriber.e
 | 请求命中但 app 仍非会员 | entitlement key 不对 | 按上面抓包补 key |
 | 第一次生效，重开失效 | RevenueCat 走了 ETag 304 / 本地缓存 | 确认 `script-request-header` 那条规则已挂上；清 app 数据 |
 | app 提示网络错误 | 脚本返回了非法 JSON | QX 日志看脚本报错，`node --check` 校验语法 |
+| 会员价格一直转圈/空白 | `/v1/subscribers/{id}/offerings` 被 subscriber 规则误拦，响应被替换成会员 JSON | 已修复：正则锚定到精确路径 `[^/?]+(\?.*)?$`，更新订阅即可 |
 | 会员页显示但功能仍锁 | 功能走了自有 API 的另一个字段 | 抓对应接口响应，补字段名 |
 
 ---
