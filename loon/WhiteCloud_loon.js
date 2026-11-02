@@ -170,10 +170,40 @@
         resHeaders["Content-Type"] = "application/json";
 
         $done({
-            status: 200,
             headers: resHeaders,
             body: JSON.stringify(body)
         });
+        return;
+    }
+
+    // ============================================================
+    // 探针：bootstrap 里找会员相关字段（只通知，不改写）
+    // ============================================================
+    if (/\/api\/v2\/bootstrap/.test(url)) {
+        var bootRaw = $response.body || "";
+        var hits = [];
+        try {
+            var bootObj = JSON.parse(bootRaw);
+            (function walkBoot(v, path, depth) {
+                if (hits.length >= 8 || depth > 10) return;
+                if (Array.isArray(v)) {
+                    for (var bi = 0; bi < Math.min(v.length, 5); bi++) walkBoot(v[bi], path + "[" + bi + "]", depth + 1);
+                    return;
+                }
+                if (!v || typeof v !== "object") return;
+                for (var bk in v) {
+                    var blk = bk.toLowerCase();
+                    if (/member|vip|premium|subscri|entitle|expire|tier/.test(blk)) {
+                        hits.push(path + "." + bk + "=" + JSON.stringify(v[bk]).slice(0, 60));
+                    }
+                    walkBoot(v[bk], path + "." + bk, depth + 1);
+                }
+            })(bootObj, "", 0);
+            dbg("BOOT", hits.length ? hits.join(" | ") : "no member keys (json ok, len=" + bootRaw.length + ")");
+        } catch (e) {
+            dbg("BOOT", "non-json len=" + bootRaw.length + " head=" + bootRaw.slice(0, 80));
+        }
+        $done({});
         return;
     }
 
