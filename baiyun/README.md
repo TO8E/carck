@@ -20,6 +20,22 @@ api.revenuecat.com, api-production.8-lives-cat.io, api.rc-backup.com, untech.cc,
 
 ---
 
+## Loon 插件版
+
+插件地址：
+
+```
+https://raw.githubusercontent.com/TO8E/carck/main/loon/WhiteCloud.plugin
+```
+
+Loon → 配置 → 插件 → 添加插件，粘贴上面的地址。插件自带 MITM hostname（`%APPEND%`），不用手动加。
+
+然后打开 Loon 的「MitM」和脚本开关，杀掉白云天气重开。
+
+脚本同样带调试通知：命中 `RC` / `API` 接口时会弹 `WhiteCloud` 通知，把通知内容发出来就能定位会员字段。
+
+---
+
 ## 一、静态分析结论（这个包是怎么判断会员的）
 
 解包 `白云天气_2.81.ipa` 后确认：
