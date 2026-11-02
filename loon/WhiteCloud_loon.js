@@ -80,20 +80,10 @@
         var purchaseDate = iso(new Date(now.getTime() - 86400000 * 400));
 
         // entitlement key 候选
+        // 真实 entitlement id 来自 /v1/product_entitlement_mapping：
+        // wc_pro_1m / wc_pro_1y -> entitlements: ["allaccess"]
         var ENTITLEMENT_KEYS = [
-            "pro",
-            "premium",
-            "vip",
-            "plus",
-            "member",
-            "membership",
-            "whitecloud",
-            "whitecloud_pro",
-            "pro_plus",
-            "lifetime",
-            "annual",
-            "unlimited",
-            "full"
+            "allaccess"
         ];
 
         // 产品 ID 候选
