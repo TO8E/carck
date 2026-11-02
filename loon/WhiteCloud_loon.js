@@ -174,6 +174,10 @@
         }
         resHeaders["Content-Type"] = "application/json";
 
+        // 自检：确认脚本版本与最终发出的头（有 x-signature 说明还是旧脚本）
+        dbg("RC-OUT", "sig=" + ($response && $response.headers && $response.headers["x-signature"] ? "IN" : "OUT") +
+            " hdr=" + JSON.stringify(Object.keys(resHeaders)).slice(0, 200));
+
         $done({
             headers: resHeaders,
             body: JSON.stringify(body)
