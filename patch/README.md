@@ -44,3 +44,23 @@ ldrb w0, [x20, #0x10] ; tbz w0, #0  ; bit0==0（notRequested / failed）-> 非�
 ```
 
 安装：用 Sideloadly / AltStore 以自签证书重签安装。
+
+## 覆盖范围：4 个二进制文件
+
+同一段判断被编进了 4 个二进制，全部需要打补丁，否则小组件/手表仍提示要会员：
+
+| 二进制 | `allaccess` 构造点基址 |
+|---|---|
+| `WhiteCloud.app/WhiteCloud` | `0x4e40` |
+| `PlugIns/WeatherWidgetExtension.appex/WeatherWidgetExtension` | `0x78afc` |
+| `Watch/白云.app/PlugIns/WatchWeatherWatchKitExtension.appex/WatchWeatherWatchKitExtension` | `0x8fe4` |
+| `WatchWidgetsExtension.appex/WatchWidgetsExtension` | `0x8fcc` |
+
+补丁位置相对基址固定：`+0x28`、`+0x3C`、`+0x80`、`+0x174`。
+
+### 通用补丁器
+
+在目标二进制里搜 `mov x0, #0x6c61` 的指令字节 `208c8dd2`，
+对每个命中点校验 `+0x28` 处是否为 `b.eq`（`c0 00 00 54`），
+命中才打补丁——可避免误伤同字节序列的干扰项。
+
