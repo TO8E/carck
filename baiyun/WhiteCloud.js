@@ -12,6 +12,19 @@
 (function () {
     var url = ($request && $request.url) || "";
 
+    // 调试开关：true 时把命中的关键响应弹通知（每个 URL 只弹一次）。
+    // 确认会员逻辑后改回 false。
+    var DEBUG = true;
+    function dbg(tag, msg) {
+        if (!DEBUG) return;
+        try {
+            var key = "wc_dbg_" + tag;
+            if ($persistentStore.read(key)) return;
+            $persistentStore.write("1", key);
+        } catch (e) {}
+        try { $notify("WhiteCloud", tag, String(msg || "").slice(0, 300)); } catch (e) {}
+    }
+
     // ============================================================
     // 阶段一：请求头（QX 的 script-request-header 阶段没有 $response）
     // ============================================================
@@ -44,6 +57,9 @@
         if (m && m[1]) {
             try { uid = decodeURIComponent(m[1]); } catch (e) { uid = m[1]; }
         }
+
+        var origBody = ($response && $response.body) || "";
+        dbg("RC " + uid, origBody.slice(0, 280));
 
         var now = new Date();
         function iso(d) {
@@ -157,6 +173,7 @@
     // ============================================================
     if (/\/api\/v2\/(users\/user-settings|users\/register-device)/.test(url)) {
         var raw = $response.body;
+        dbg("API " + url.split("?")[0].replace(/^https?:\/\/[^\/]+/, ""), (raw || "").slice(0, 280));
         if (!raw) {
             $done({});
             return;
