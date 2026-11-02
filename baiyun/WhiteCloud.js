@@ -42,7 +42,9 @@
         var reqHeaders = {};
         if ($request && $request.headers) {
             for (var rk in $request.headers) {
-                if (rk.toLowerCase() === "if-none-match") continue;
+                var rlk = rk.toLowerCase();
+                // RC 的 ETag 走 x-revenuecat-etag 自定义头，不删就会 304 空 body
+                if (rlk === "if-none-match" || rlk === "if-modified-since" || rlk === "x-revenuecat-etag") continue;
                 reqHeaders[rk] = $request.headers[rk];
             }
         }

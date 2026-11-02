@@ -53,7 +53,10 @@
         var reqHeaders = {};
         if ($request && $request.headers) {
             for (var rk in $request.headers) {
-                if (rk.toLowerCase() === "if-none-match") continue;
+                var rlk = rk.toLowerCase();
+                // RC 的 ETag 走自定义头 x-revenuecat-etag（不是 If-None-Match），
+                // 不删就会拿到 304 空 body，改写失效 → app 用缓存的「非会员」。
+                if (rlk === "if-none-match" || rlk === "if-modified-since" || rlk === "x-revenuecat-etag") continue;
                 reqHeaders[rk] = $request.headers[rk];
             }
         }
@@ -213,7 +216,15 @@
         dbg("RC-OUT", "sig=" + ($response && $response.headers && $response.headers["x-signature"] ? "IN" : "OUT") +
             " hdr=" + JSON.stringify(Object.keys(resHeaders)).slice(0, 200));
 
+        // 万 upstream 仍然回了 304（空 body），这里强制升成 200 并塞进我们伪造的 body，
+        // 否则 RC 会沿用缓存里的「非会员」CustomerInfo。
+        var outStatus = 200;
+        var rawStatus = 0;
+        try { rawStatus = parseInt($response.status || $response.statusCode || 0, 10) || 0; } catch (e) { rawStatus = 0; }
+        if (rawStatus === 304) dbg("RC-304", "forced 200 for " + uid);
+
         $done({
+            status: outStatus,
             headers: resHeaders,
             body: JSON.stringify(body)
         });
