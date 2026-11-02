@@ -67,8 +67,8 @@
         }
         var requestDate = iso(now);
         var purchaseDate = iso(new Date(now.getTime() - 86400000 * 400));
-        // 不用 null（部分实现把 null 当成“无到期信息”），直接给 2099 的明确到期时间
-        var expiryDate = "2099-12-31T23:59:59Z";
+        // 到期时间给一年后（自然值，避免 2099 这种一眼假的数）
+        var expiryDate = iso(new Date(now.getTime() + 86400000 * 365));
 
         // entitlement key 候选：独立开发者 90% 用其中之一
         // 真实 entitlement id 来自 /v1/product_entitlement_mapping：
