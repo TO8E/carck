@@ -302,6 +302,26 @@
         }
 
         walk(obj);
+
+        // 服务端 user DTO 里只带 membershipExpires，没有布尔开关。
+        // 若 app 读的是 isMember/membership 之类字段，缺失时会当成非会员，
+        // 这里显式补齐（只在缺失时补，不覆盖已有值）。
+        function isUserDTO(v) {
+            if (!v || typeof v !== "object") return false;
+            return ("membershipExpires" in v) || ("deviceToken" in v && "_id" in v);
+        }
+        function topUp(v, depth) {
+            if (depth > 4 || !v || typeof v !== "object") return;
+            if (isUserDTO(v)) {
+                if (!("membership" in v)) v.membership = "lifetime";
+                if (!("tier" in v)) v.tier = "lifetime";
+                if (!("isMember" in v)) v.isMember = true;
+                if (!("isVip" in v)) v.isVip = true;
+                if (!("isPremium" in v)) v.isPremium = true;
+            }
+            for (var tk in v) topUp(v[tk], depth + 1);
+        }
+        topUp(obj, 0);
         $done({ body: JSON.stringify(obj) });
         return;
     }
